@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
+	_ "github.com/ipanardian/price-api/docs"
 	dtoV1 "github.com/ipanardian/price-api/internal/dto/v1"
 	"github.com/ipanardian/price-api/internal/handler"
 )

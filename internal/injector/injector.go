@@ -17,7 +17,7 @@ func InitializeHermesService() (service.HermesService, error) {
 
 func InitializeApiService() (service.ApiService, error) {
 	wire.Build(
-		service.NewApiService
+		service.NewApiService,
 	)
 	return nil, nil
 }

@@ -59,7 +59,7 @@ func (h *ApiHandler) setResponseV1(c *fiber.Ctx, res dtoV1.ResponseWrapper) {
 // @security ClientIdAuth
 // @security ClientSignatureAuth
 // @param payload query dtoV1.GetPriceRequest true "filter"
-// @success 200 {object} dtoV1.ResponseWrapper{data=dtoV1.PriceDataResponse}
+// @success 200 {object} dtoV1.ResponseWrapper{data=[]dtoV1.GetPriceResponse}
 // @failure 500 {object} dtoV1.ResponseWrapper
 func (h *ApiHandler) GetPrice(c *fiber.Ctx) (err error) {
 	var req dtoV1.GetPriceRequest

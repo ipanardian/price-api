@@ -1,0 +1,82 @@
+definitions:
+  dtoV1.GetPriceResponse:
+    properties:
+      id:
+        type: string
+      price:
+        $ref: '#/definitions/frame.HermesPrice'
+    type: object
+  dtoV1.ResponseWrapper:
+    properties:
+      data: {}
+      status:
+        type: integer
+      status_code:
+        type: string
+      status_message:
+        type: string
+      status_number:
+        type: string
+      ts:
+        type: integer
+    type: object
+  frame.HermesPrice:
+    properties:
+      conf:
+        type: number
+      expo:
+        type: integer
+      price:
+        type: number
+      publish_time:
+        type: integer
+    type: object
+info:
+  contact: {}
+  version: "1.0"
+paths:
+  /v1/price:
+    get:
+      description: Get price by ids
+      parameters:
+      - collectionFormat: csv
+        in: query
+        items:
+          type: string
+        name: ids
+        required: true
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtoV1.ResponseWrapper'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dtoV1.GetPriceResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtoV1.ResponseWrapper'
+      security:
+      - ClientIdAuth: []
+      - ClientSignatureAuth: []
+      summary: Get price
+      tags:
+      - v1
+securityDefinitions:
+  ClientIdAuth:
+    in: header
+    name: X-Client-ID
+    type: apiKey
+  ClientSignatureAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
