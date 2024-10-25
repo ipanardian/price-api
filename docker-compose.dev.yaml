@@ -1,0 +1,22 @@
+services:
+  price_api:
+    image: hmdockerhub/price-api:dev
+    container_name: price_api
+    restart: always
+    networks:
+      - ip4net
+      - ip6net
+    ports:
+      - "8500:8500"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/var/data
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+networks:
+  ip4net:
+    external: true
+  ip6net:
+    external: true
