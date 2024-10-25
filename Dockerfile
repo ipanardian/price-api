@@ -9,7 +9,7 @@ RUN apk add jq make git
 
 ENV GOPRIVATE=github.com/ipanardian/price-api
 
-RUN echo "machine nobi-gitlab.usenobi.com login $GITLAB_USERNAME password $GITLAB_PASSWORD" > ~/.netrc
+RUN echo "machine gitlab.com login $GITLAB_USERNAME password $GITLAB_PASSWORD" > ~/.netrc
 
 WORKDIR /etc/price-api/
 
