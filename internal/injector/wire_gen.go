@@ -17,3 +17,8 @@ func InitializeHermesService() (service.HermesService, error) {
 	return hermesService, nil
 }
 
+func InitializeApiService() (service.ApiService, error) {
+	apiService := service.NewApiService()
+	return apiService, nil
+}
+
