@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/ipanardian/price-api/internal/cache"
 	"github.com/ipanardian/price-api/internal/logger"
 	"github.com/ipanardian/price-api/internal/model/frame"
 	"github.com/recws-org/recws"
@@ -150,7 +151,6 @@ func (b *HermesServiceImpl) Connect() (err error) {
 				for i, item := range ch {
 					ids[i] = fmt.Sprintf(`"%s"`, item)
 				}
-				fmt.Println(ids)
 
 				var idStr string
 				if len(ids) > 1 {
@@ -191,7 +191,7 @@ func (b *HermesServiceImpl) Connect() (err error) {
 				defer func() {
 					b.subsMx.Unlock()
 				}()
-				time.Sleep(5 * time.Second)
+				time.Sleep(10 * time.Second)
 
 				b.subsMx.Lock()
 				if b.ws.IsConnected() && !b.hermesIsSubscribed && len(b.hermesPriceIds) > 0 {
@@ -238,11 +238,11 @@ func (b *HermesServiceImpl) Listen() {
 			done()
 		}()
 
-		// e := b.Subscribe(b.hermesPriceIds)
-		// if e != nil {
-		// 	logger.Log.Sugar().Errorf("Hermes subscribe: %v", e)
-		// 	return
-		// }
+		e := b.Subscribe(b.hermesPriceIds)
+		if e != nil {
+			logger.Log.Sugar().Errorf("Hermes subscribe: %v", e)
+			return
+		}
 
 		for {
 			select {
@@ -281,7 +281,48 @@ func (b *HermesServiceImpl) Send(prc *frame.PriceHermes) {
 }
 
 func (b *HermesServiceImpl) Sync() {
+	go func() {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Log.Sugar().Errorln("syncPrice", string(dbg.Stack()))
+				}
+			}()
 
+			for prc := range b.pricePools {
+				b.pricesMx.Lock()
+				b.prices[prc.ID] = prc
+				b.pricesMx.Unlock()
+			}
+		}()
+	}()
+
+	//Push to redis
+	go func() {
+		for {
+			func() {
+				ctx, done := context.WithCancel(context.Background())
+				defer func() {
+					if r := recover(); r != nil {
+						logger.Log.Sugar().Errorln("pushToRedis", string(dbg.Stack()))
+					}
+					done()
+				}()
+				pipeline := cache.Client().Pipeline()
+				b.pricesMx.RLock()
+				for i, prc := range b.prices {
+					jsonStr, _ := json.Marshal(prc)
+					pipeline.Set(ctx, fmt.Sprintf("price:%s", i), jsonStr, 1*time.Minute)
+				}
+				b.pricesMx.RUnlock()
+				_, e := pipeline.Exec(ctx)
+				if e != nil {
+					logger.Log.Sugar().Errorln("redis exec price", e)
+				}
+			}()
+			time.Sleep(1000 * time.Millisecond)
+		}
+	}()
 }
 
 func (b *HermesServiceImpl) Run() {
