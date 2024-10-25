@@ -26,7 +26,6 @@ func NewApiService() ApiService {
 
 func (s *ApiServiceImpl) GetPrice(c *fiber.Ctx, req *dtoV1.GetPriceRequest) (d []dtoV1.GetPriceResponse, statusNumber string, err error) {
 	ids := req.Ids
-	logger.Log.Sugar().Debugln("ids: ", ids)
 	if len(ids) < 1 {
 		statusNumber = constant.PriceUnavailable
 		err = merry.Wrap(errors.New(StatusMap[statusNumber]), merry.WithMessage(StatusMap[statusNumber]), merry.WithHTTPCode(fiber.StatusNotFound))

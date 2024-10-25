@@ -56,6 +56,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
+	github.com/mergermarket/go-pkcs7 v0.0.0-20170926155232-153b18ea13c9
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/recws-org/recws v1.4.0
 	github.com/redis/go-redis/v9 v9.7.0

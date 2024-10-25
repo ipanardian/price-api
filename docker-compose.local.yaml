@@ -1,0 +1,23 @@
+services:
+  price_api:
+    build:
+      context: ./
+      target: price-api
+      args:
+        GITLAB_USERNAME: ${GITLAB_USERNAME}
+        GITLAB_PASSWORD: ${GITLAB_PASSWORD}
+        GO_MOD_TAG: ${GO_MOD_TAG}
+    container_name: price_api
+    networks:
+      - default
+      - techlink
+    ports:
+      - "8500:8500"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/var/data
+
+networks:
+  techlink:
+    external: true
