@@ -265,7 +265,7 @@ func (b *HermesServiceImpl) Listen() {
 						ID:          event.ID,
 						Price:       priceFeed.Price,
 						Expo:        priceFeed.Expo,
-						Confidence:  priceFeed.Conf,
+						Conf:        priceFeed.Conf,
 						PublishTime: priceFeed.PublishTime,
 					}
 					b.Send(prc)
