@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -22,6 +23,8 @@ func InitApiMiddleware(app *fiber.App) {
 		TimeFormat: "02-Jan-2006 15:04:05",
 		TimeZone:   "UTC",
 	}))
+
+	app.Use(cors.New())
 
 	app.Use(limiter.New(limiter.Config{
 		Max:        constant.RateLimitMaxRequest,
