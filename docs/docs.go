@@ -39,8 +39,9 @@ const docTemplate = `{
                         "items": {
                             "type": "string"
                         },
-                        "collectionFormat": "csv",
-                        "name": "ids",
+                        "collectionFormat": "multi",
+                        "description": "Format: ?ids[]=a12...\u0026ids[]=b4c...",
+                        "name": "ids[]",
                         "in": "query",
                         "required": true
                     }

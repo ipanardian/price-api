@@ -326,7 +326,7 @@ func (b *HermesServiceImpl) Sync() {
 }
 
 func (b *HermesServiceImpl) Run() {
-	logger.Log.Sugar().Debug("Hermes service started")
+	logger.Log.Sugar().Info("Hermes service started")
 
 	priceIdsStr := viper.GetString("PRICE_FEED_IDS")
 	if priceIdsStr == "" {

@@ -39,11 +39,12 @@ paths:
     get:
       description: Get price by ids
       parameters:
-      - collectionFormat: csv
+      - collectionFormat: multi
+        description: 'Format: ?ids[]=a12...&ids[]=b4c...'
         in: query
         items:
           type: string
-        name: ids
+        name: ids[]
         required: true
         type: array
       produces:
