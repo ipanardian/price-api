@@ -37,7 +37,7 @@ info:
 paths:
   /v1/price:
     get:
-      description: Get price by ids
+      description: Get price by price feed ids
       parameters:
       - collectionFormat: multi
         description: 'Format: ?ids[]=a12...&ids[]=b4c...'
@@ -68,16 +68,16 @@ paths:
       security:
       - ClientIdAuth: []
       - ClientSignatureAuth: []
-      summary: Get price
+      summary: Get price by price feed ids
       tags:
       - v1
 securityDefinitions:
-  ClientIdAuth:
+  ApiKeyAuth:
     in: header
-    name: X-Client-ID
+    name: X-API-KEY
     type: apiKey
-  ClientSignatureAuth:
+  ApiSignatureAuth:
     in: header
-    name: Authorization
+    name: X-API-SIGNATURE
     type: apiKey
 swagger: "2.0"

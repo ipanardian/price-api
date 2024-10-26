@@ -43,7 +43,7 @@ func Get() *zap.Logger {
 		consoleEncoderProd := zapcore.NewConsoleEncoder(productionCfg)
 
 		core := zapcore.NewCore(consoleEncoderDev, stdout, level)
-		if viper.GetString("MODE") != "development" {
+		if viper.GetString("ENV") != "development" {
 			core = zapcore.NewTee(
 				zapcore.NewCore(consoleEncoderProd, stdout, level),
 			)

@@ -1,10 +1,10 @@
 // @version 1.0
-// @securityDefinitions.apikey ClientIdAuth
+// @securityDefinitions.apikey ApiKeyAuth
 // @in header
-// @name X-Client-ID
-// @securityDefinitions.apikey ClientSignatureAuth
+// @name X-API-KEY
+// @securityDefinitions.apikey ApiSignatureAuth
 // @in header
-// @name Authorization
+// @name X-API-SIGNATURE
 package main
 
 import (

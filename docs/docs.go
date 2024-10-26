@@ -25,14 +25,14 @@ const docTemplate = `{
                         "ClientSignatureAuth": []
                     }
                 ],
-                "description": "Get price by ids",
+                "description": "Get price by price feed ids",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "v1"
                 ],
-                "summary": "Get price",
+                "summary": "Get price by price feed ids",
                 "parameters": [
                     {
                         "type": "array",
@@ -130,14 +130,14 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "ClientIdAuth": {
+        "ApiKeyAuth": {
             "type": "apiKey",
-            "name": "X-Client-ID",
+            "name": "X-API-KEY",
             "in": "header"
         },
-        "ClientSignatureAuth": {
+        "ApiSignatureAuth": {
             "type": "apiKey",
-            "name": "Authorization",
+            "name": "X-API-SIGNATURE",
             "in": "header"
         }
     }
