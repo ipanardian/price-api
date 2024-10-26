@@ -57,7 +57,7 @@ func (s *ApiServiceImpl) GetPrice(c *fiber.Ctx, req *dtoV1.GetPriceRequest) (d [
 					PublishTime: prices.PublishTime,
 				},
 			}
-			cache.MemSet(key, pc, time.Second*3)
+			cache.MemSet(key, pc, time.Second*2)
 
 			d = append(d, pc)
 		}(id)

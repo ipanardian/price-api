@@ -51,15 +51,15 @@ func (h *ApiHandler) setResponseV1(c *fiber.Ctx, res dtoV1.ResponseWrapper) {
 }
 
 // GetPrice
-// @summary Get price
-// @description Get price by ids
+// @summary Get price by price feed ids
+// @description Get price by price feed ids
 // @tags v1
 // @produce json
 // @router /v1/price [get]
 // @security ClientIdAuth
 // @security ClientSignatureAuth
-// @param payload query dtoV1.GetPriceRequest true "filter"
-// @success 200 {object} dtoV1.ResponseWrapper{data=dtoV1.PriceDataResponse}
+// @param ids[] query []string true "Format: ?ids[]=a12...&ids[]=b4c..." collectionFormat(multi)
+// @success 200 {object} dtoV1.ResponseWrapper{data=[]dtoV1.GetPriceResponse}
 // @failure 500 {object} dtoV1.ResponseWrapper
 func (h *ApiHandler) GetPrice(c *fiber.Ctx) (err error) {
 	var req dtoV1.GetPriceRequest

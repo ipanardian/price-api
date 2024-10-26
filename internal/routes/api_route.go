@@ -5,8 +5,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
+	_ "github.com/ipanardian/price-api/docs"
 	dtoV1 "github.com/ipanardian/price-api/internal/dto/v1"
 	"github.com/ipanardian/price-api/internal/handler"
+	"github.com/ipanardian/price-api/internal/middleware"
 )
 
 func SetupApiRouter(app *fiber.App, handler *handler.Handler) {
@@ -22,7 +24,7 @@ func SetupApiRouter(app *fiber.App, handler *handler.Handler) {
 		Title: "Price API Documentation",
 	}))
 
-	api := app.Group("v1")
+	api := app.Group("v1", middleware.AuthApiMiddleware())
 	api.Get("/price", handler.Api.GetPrice)
 
 	app.Use(func(c *fiber.Ctx) error {

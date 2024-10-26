@@ -14,6 +14,7 @@ const (
 	StatusUnauthorized   = "50005"
 	TooManyRequest       = "50006"
 	StatusSuspended      = "50007"
+	DecryptAESError      = "50008"
 
 	RestrictedUser   = "50100"
 	PriceNotFound    = "50101"

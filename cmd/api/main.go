@@ -1,3 +1,10 @@
+// @version 1.0
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-API-KEY
+// @securityDefinitions.apikey ApiSignatureAuth
+// @in header
+// @name X-API-SIGNATURE
 package main
 
 import (
