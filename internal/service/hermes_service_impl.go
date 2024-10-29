@@ -348,7 +348,7 @@ func (b *HermesServiceImpl) HealthCheck() {
 
 		for {
 			func() {
-				time.Sleep(63 * time.Second)
+				time.Sleep(180 * time.Second)
 
 				priceIdsStr := viper.GetString("PRICE_FEED_IDS")
 				if priceIdsStr == "" {
@@ -365,11 +365,11 @@ func (b *HermesServiceImpl) HealthCheck() {
 					}
 
 					if !price.Price.IsPositive() {
-						notification.SendPriceAlert(id, fmt.Sprintf("Invalid price: %s. Please check!", price.Price.String()))
+						notification.SendPriceAlert(id, fmt.Sprintf("Invalid price: %s", price.Price.String()))
 					}
 
 					if helpers.IsLastUpdateExpired(price.PublishTime, 60) {
-						notification.SendPriceAlert(id, fmt.Sprintf("Price not updated. Last update: %s. Please check!", time.Unix(price.PublishTime, 0).Format(time.RFC822)))
+						notification.SendPriceAlert(id, fmt.Sprintf("Price not updated. Last update: %s", time.Unix(price.PublishTime, 0).Format(time.RFC822)))
 					}
 				}
 			}()
