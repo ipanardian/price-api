@@ -23,4 +23,5 @@ type ApiService interface {
 
 type HermesService interface {
 	Run()
+	HealthCheck()
 }

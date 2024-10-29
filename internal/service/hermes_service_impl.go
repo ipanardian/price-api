@@ -11,8 +11,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/ipanardian/price-api/internal/cache"
+	"github.com/ipanardian/price-api/internal/helpers"
 	"github.com/ipanardian/price-api/internal/logger"
 	"github.com/ipanardian/price-api/internal/model/frame"
+	"github.com/ipanardian/price-api/internal/notification"
 	"github.com/recws-org/recws"
 	"github.com/spf13/viper"
 )
@@ -326,7 +328,7 @@ func (b *HermesServiceImpl) Sync() {
 }
 
 func (b *HermesServiceImpl) Run() {
-	logger.Log.Sugar().Info("Hermes service started")
+	logger.Log.Sugar().Info("Price service started")
 
 	priceIdsStr := viper.GetString("PRICE_FEED_IDS")
 	if priceIdsStr == "" {
@@ -338,6 +340,39 @@ func (b *HermesServiceImpl) Run() {
 	b.Connect()
 	b.Listen()
 	b.Sync()
+}
 
-	select {}
+func (b *HermesServiceImpl) HealthCheck() {
+	go func() {
+		logger.Log.Sugar().Info("Price healthcheck started")
+
+		for {
+			func() {
+				time.Sleep(63 * time.Second)
+
+				priceIdsStr := viper.GetString("PRICE_FEED_IDS")
+				if priceIdsStr == "" {
+					return
+				}
+
+				priceIds := strings.Split(priceIdsStr, ",")
+				for _, id := range priceIds {
+					id = helpers.RemoveLeading0xIfExists(id)
+					price, err := cache.Get[frame.PriceHermes](context.Background(), fmt.Sprintf("price:%s", id))
+					if err != nil {
+						notification.SendPriceAlert(id, "Price not found in redis. Please check!")
+						continue
+					}
+
+					if !price.Price.IsPositive() {
+						notification.SendPriceAlert(id, fmt.Sprintf("Invalid price: %s. Please check!", price.Price.String()))
+					}
+
+					if helpers.IsLastUpdateExpired(price.PublishTime, 60) {
+						notification.SendPriceAlert(id, fmt.Sprintf("Price not updated. Last update: %s. Please check!", time.Unix(price.PublishTime, 0).Format(time.RFC822)))
+					}
+				}
+			}()
+		}
+	}()
 }
