@@ -360,7 +360,7 @@ func (b *HermesServiceImpl) HealthCheck() {
 					id = helpers.RemoveLeading0xIfExists(id)
 					price, err := cache.Get[frame.PriceHermes](context.Background(), fmt.Sprintf("price:%s", id))
 					if err != nil {
-						notification.SendPriceAlert(id, "Price not found in redis. Please check!")
+						notification.SendPriceAlert(id, "Price does not exist in Redis. Please check!")
 						continue
 					}
 
