@@ -170,11 +170,21 @@ func MustParseStringToRFC3339(t string) *time.Time {
 	return tm
 }
 
-func CurrentTimeAsRFC3339() string {
+func CurrentTimeAsRFC3339(isUTC bool) string {
+	if !isUTC {
+		loc, _ := time.LoadLocation("Asia/Jakarta")
+		return time.Now().In(loc).Format(time.RFC3339)
+	}
+
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
-func CurrentTimeAsRFC822() string {
+func CurrentTimeAsRFC822(isUTC bool) string {
+	if !isUTC {
+		loc, _ := time.LoadLocation("Asia/Jakarta")
+		return time.Now().In(loc).Format(time.RFC822)
+	}
+
 	return time.Now().UTC().Format(time.RFC822)
 }
 
@@ -209,4 +219,16 @@ func GenerateSignature(secret string) string {
 	mac.Write([]byte(fmt.Sprintf("%d", ts)))
 	sign := mac.Sum(nil)
 	return hex.EncodeToString(sign)
+}
+
+func RemoveLeading0xIfExists(id string) string {
+	if strings.HasPrefix(id, "0x") {
+		return id[2:]
+	}
+
+	return id
+}
+
+func IsLastUpdateExpired(lastUpdate, age int64) bool {
+	return time.Now().Unix()-lastUpdate > age
 }

@@ -33,4 +33,7 @@ func main() {
 	}
 
 	hermesService.Run()
+	hermesService.HealthCheck()
+
+	select {}
 }
