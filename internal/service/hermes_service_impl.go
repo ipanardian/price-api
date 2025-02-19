@@ -53,7 +53,7 @@ func (b *HermesServiceImpl) Connect() (err error) {
 		KeepAliveTimeout: 0,
 	}
 
-	ws.Dial("wss://hermes.pyth.network/ws", nil)
+	ws.Dial(viper.GetString("HERMES_WS_URL"), nil)
 
 	if !ws.IsConnected() {
 		logger.Log.Sugar().Error("hermes connect error!")
