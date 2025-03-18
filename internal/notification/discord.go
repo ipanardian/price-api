@@ -3,49 +3,90 @@ package notification
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
-	"github.com/ipanardian/price-api/internal/helpers"
-	"github.com/ipanardian/price-api/internal/model/frame"
+	"github.com/ipanardian/price-api/internal/logger"
 	"github.com/spf13/viper"
 )
 
-func SendPriceAlert(id string, message string) (err error) {
-	body := frame.DiscordBody{
-		Username: "Price Engine Alert",
-		Embeds: []frame.DiscordEmbed{{
-			Color: 15548997,
-			Fields: []frame.DiscordField{
-				{
-					Name:   "Price Feed ID",
-					Value:  id,
-					Inline: true,
-				},
-				{
-					Name:   "Message",
-					Value:  message,
-					Inline: false,
-				},
-				{
-					Name:   "Time",
-					Value:  helpers.CurrentTimeAsRFC822(false),
-					Inline: false,
-				},
-			},
-		}},
+type Message struct {
+	Thread  string
+	Level   Level
+	Color   Color
+	Title   string
+	Message string
+	Fields  []Fields
+}
+
+type Fields struct {
+	Key   string
+	Value interface{}
+}
+
+type Level string
+
+const (
+	INFO  Level = "INFO"
+	WARN  Level = "WARN"
+	ERROR Level = "ERROR"
+)
+
+type Color int
+
+const (
+	ColorRed    Color = 0xFF0000
+	ColorGreen  Color = 0x00FF00
+	ColorYellow Color = 0xFFFF00
+)
+
+const (
+	PriceAlert = "1247191511796551830"
+)
+
+func Send(msg Message) {
+	webhookURL := viper.GetString("DISCORD_MONITORING_URI")
+	embed := map[string]interface{}{
+		"title":       msg.Title,
+		"description": msg.Message,
+		"color":       int(msg.Color),
+		"fields":      []map[string]interface{}{},
+		"timestamp":   time.Now().Format(time.RFC3339),
 	}
 
-	hookBroker := viper.GetString("DISCORD_MONITORING_URI")
+	for _, field := range msg.Fields {
+		value := fmt.Sprintf("%v", field.Value)
+		embed["fields"] = append(embed["fields"].([]map[string]interface{}), map[string]interface{}{
+			"name":   field.Key,
+			"value":  value,
+			"inline": false,
+		})
+	}
 
-	params, err := json.Marshal(body)
+	payload := map[string]interface{}{
+		"embeds": []map[string]interface{}{embed},
+	}
+
+	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		logger.Log.Sugar().Errorf("failed to marshal payload: %v", err)
+		return
 	}
 
-	_, err = http.Post(hookBroker, "application/json", bytes.NewBuffer(params))
+	if msg.Thread != "" {
+		webhookURL = webhookURL + "?thread_id=" + msg.Thread
+	}
+
+	resp, err := http.Post(webhookURL, "application/json", bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		return err
+		logger.Log.Sugar().Errorf("failed to send HTTP request: %v", err)
+		return
 	}
+	defer resp.Body.Close()
 
-	return
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		logger.Log.Sugar().Errorf("received non-200 status code: %d", resp.StatusCode)
+		return
+	}
 }

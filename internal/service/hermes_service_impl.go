@@ -14,12 +14,13 @@ import (
 	"github.com/ipanardian/price-api/internal/helpers"
 	"github.com/ipanardian/price-api/internal/logger"
 	"github.com/ipanardian/price-api/internal/model/frame"
-	"github.com/ipanardian/price-api/internal/notification"
+	notif "github.com/ipanardian/price-api/internal/notification"
 	"github.com/recws-org/recws"
 	"github.com/spf13/viper"
 )
 
 type HermesServiceImpl struct {
+	rpc                string
 	ws                 *recws.RecConn
 	prices             map[string]*frame.PriceHermes
 	pricesMx           sync.RWMutex
@@ -35,6 +36,7 @@ type HermesServiceImpl struct {
 
 func NewHermesService() HermesService {
 	return &HermesServiceImpl{
+		rpc:                viper.GetString("HERMES_WS_URL"),
 		pricePools:         make(chan *frame.PriceHermes, 100),
 		prices:             make(map[string]*frame.PriceHermes),
 		pricesMx:           sync.RWMutex{},
@@ -53,7 +55,7 @@ func (b *HermesServiceImpl) Connect() (err error) {
 		KeepAliveTimeout: 0,
 	}
 
-	ws.Dial(viper.GetString("HERMES_WS_URL"), nil)
+	ws.Dial(b.rpc, nil)
 
 	if !ws.IsConnected() {
 		logger.Log.Sugar().Error("hermes connect error!")
@@ -71,7 +73,6 @@ func (b *HermesServiceImpl) Connect() (err error) {
 				defer func() {
 					if r := recover(); r != nil {
 						logger.Log.Sugar().Errorf("Hermes Pool Reader Error: %s\n%s", r, string(dbg.Stack()))
-						ws.CloseAndReconnect()
 
 						b.subsMx.Lock()
 						b.hermesIsSubscribed = false
@@ -89,7 +90,18 @@ func (b *HermesServiceImpl) Connect() (err error) {
 				_, message, e := ws.ReadMessage()
 				if e != nil {
 					logger.Log.Sugar().Errorf("Hermes read error: %v", e)
-					ws.CloseAndReconnect()
+					notif.Send(notif.Message{
+						Thread:  notif.PriceAlert,
+						Level:   notif.ERROR,
+						Color:   notif.ColorRed,
+						Title:   "Price Alert - Read Error",
+						Message: "Websocket read error",
+						Fields: []notif.Fields{
+							{Key: "RPC", Value: helpers.TruncateString(b.rpc, 50)},
+							{Key: "Error", Value: e.Error()},
+							{Key: "Time", Value: helpers.CurrentTimeAsRFC822(false)},
+						},
+					})
 
 					b.subsMx.Lock()
 					b.hermesIsSubscribed = false
@@ -165,7 +177,6 @@ func (b *HermesServiceImpl) Connect() (err error) {
 				e := b.ws.WriteMessage(websocket.TextMessage, []byte(args))
 				if e != nil {
 					logger.Log.Sugar().Errorf("subscribe error: %s", err)
-					b.ws.CloseAndReconnect()
 					b.subsMx.Lock()
 					b.hermesIsSubscribed = false
 					b.subsMx.Unlock()
@@ -198,6 +209,17 @@ func (b *HermesServiceImpl) Connect() (err error) {
 				b.subsMx.Lock()
 				if b.ws.IsConnected() && !b.hermesIsSubscribed && len(b.hermesPriceIds) > 0 {
 					logger.Log.Sugar().Infoln("Hermes resubscribing")
+					notif.Send(notif.Message{
+						Thread:  notif.PriceAlert,
+						Level:   notif.WARN,
+						Color:   notif.ColorRed,
+						Title:   "Price Alert - Resubscribe",
+						Message: "Resubscribing to existing price feeds",
+						Fields: []notif.Fields{
+							{Key: "RPC", Value: helpers.TruncateString(b.rpc, 50)},
+							{Key: "Time", Value: helpers.CurrentTimeAsRFC822(false)},
+						},
+					})
 					e := b.Subscribe(b.hermesPriceIds)
 					if e != nil {
 						b.hermesIsSubscribed = false
@@ -206,7 +228,6 @@ func (b *HermesServiceImpl) Connect() (err error) {
 
 				} else if !b.ws.IsConnected() {
 					logger.Log.Sugar().Warnln("Hermes disconnected")
-					b.ws.CloseAndReconnect()
 					b.hermesIsSubscribed = false
 				}
 			}()
@@ -360,16 +381,52 @@ func (b *HermesServiceImpl) HealthCheck() {
 					id = helpers.RemoveLeading0xIfExists(id)
 					price, err := cache.Get[frame.PriceHermes](context.Background(), fmt.Sprintf("price:%s", id))
 					if err != nil {
-						notification.SendPriceAlert(id, "Price does not exist in Redis. Please check!")
+						notif.Send(notif.Message{
+							Thread:  notif.PriceAlert,
+							Level:   notif.ERROR,
+							Color:   notif.ColorRed,
+							Title:   "Price Alert - Price Not Exists",
+							Message: "Price does not exist in Cache",
+							Fields: []notif.Fields{
+								{Key: "ID", Value: id},
+								{Key: "Time", Value: helpers.CurrentTimeAsRFC822(false)},
+							},
+						})
 						continue
 					}
 
 					if !price.Price.IsPositive() {
-						notification.SendPriceAlert(id, fmt.Sprintf("Invalid price: %s", price.Price.String()))
+						notif.Send(notif.Message{
+							Thread:  notif.PriceAlert,
+							Level:   notif.ERROR,
+							Color:   notif.ColorRed,
+							Title:   "Price Alert - Invalid Price",
+							Message: "Found invalid price",
+							Fields: []notif.Fields{
+								{Key: "ID", Value: id},
+								{Key: "Price", Value: price.Price.String()},
+								{Key: "Time", Value: helpers.CurrentTimeAsRFC822(false)},
+							},
+						})
 					}
 
 					if helpers.IsLastUpdateExpired(price.PublishTime, 60) {
-						notification.SendPriceAlert(id, fmt.Sprintf("Price not updated. Last update: %s", time.Unix(price.PublishTime, 0).Format(time.RFC822)))
+						lastUpdate := func() string {
+							loc, _ := time.LoadLocation("Asia/Jakarta")
+							return time.Unix(price.PublishTime, 0).In(loc).Format(time.RFC822)
+						}
+						notif.Send(notif.Message{
+							Thread:  notif.PriceAlert,
+							Level:   notif.ERROR,
+							Color:   notif.ColorRed,
+							Title:   "Price Alert - Price Expired",
+							Message: fmt.Sprintf("Price not updated. Last update: %s", lastUpdate()),
+							Fields: []notif.Fields{
+								{Key: "ID", Value: id},
+								{Key: "Last update", Value: lastUpdate()},
+								{Key: "Time", Value: helpers.CurrentTimeAsRFC822(false)},
+							},
+						})
 					}
 				}
 			}()
