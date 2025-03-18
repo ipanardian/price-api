@@ -12,7 +12,6 @@ import (
 )
 
 type Message struct {
-	Thread  string
 	Level   Level
 	Color   Color
 	Title   string
@@ -39,10 +38,6 @@ const (
 	ColorRed    Color = 0xFF0000
 	ColorGreen  Color = 0x00FF00
 	ColorYellow Color = 0xFFFF00
-)
-
-const (
-	PriceAlert = "1247191511796551830"
 )
 
 func Send(msg Message) {
@@ -72,10 +67,6 @@ func Send(msg Message) {
 	if err != nil {
 		logger.Log.Sugar().Errorf("failed to marshal payload: %v", err)
 		return
-	}
-
-	if msg.Thread != "" {
-		webhookURL = webhookURL + "?thread_id=" + msg.Thread
 	}
 
 	resp, err := http.Post(webhookURL, "application/json", bytes.NewBuffer(payloadBytes))

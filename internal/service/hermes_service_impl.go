@@ -91,7 +91,6 @@ func (b *HermesServiceImpl) Connect() (err error) {
 				if e != nil {
 					logger.Log.Sugar().Errorf("Hermes read error: %v", e)
 					notif.Send(notif.Message{
-						Thread:  notif.PriceAlert,
 						Level:   notif.ERROR,
 						Color:   notif.ColorRed,
 						Title:   "Price Alert - Read Error",
@@ -210,9 +209,8 @@ func (b *HermesServiceImpl) Connect() (err error) {
 				if b.ws.IsConnected() && !b.hermesIsSubscribed && len(b.hermesPriceIds) > 0 {
 					logger.Log.Sugar().Infoln("Hermes resubscribing")
 					notif.Send(notif.Message{
-						Thread:  notif.PriceAlert,
 						Level:   notif.WARN,
-						Color:   notif.ColorRed,
+						Color:   notif.ColorGreen,
 						Title:   "Price Alert - Resubscribe",
 						Message: "Resubscribing to existing price feeds",
 						Fields: []notif.Fields{
@@ -382,7 +380,6 @@ func (b *HermesServiceImpl) HealthCheck() {
 					price, err := cache.Get[frame.PriceHermes](context.Background(), fmt.Sprintf("price:%s", id))
 					if err != nil {
 						notif.Send(notif.Message{
-							Thread:  notif.PriceAlert,
 							Level:   notif.ERROR,
 							Color:   notif.ColorRed,
 							Title:   "Price Alert - Price Not Exists",
@@ -397,7 +394,6 @@ func (b *HermesServiceImpl) HealthCheck() {
 
 					if !price.Price.IsPositive() {
 						notif.Send(notif.Message{
-							Thread:  notif.PriceAlert,
 							Level:   notif.ERROR,
 							Color:   notif.ColorRed,
 							Title:   "Price Alert - Invalid Price",
@@ -416,7 +412,6 @@ func (b *HermesServiceImpl) HealthCheck() {
 							return time.Unix(price.PublishTime, 0).In(loc).Format(time.RFC822)
 						}
 						notif.Send(notif.Message{
-							Thread:  notif.PriceAlert,
 							Level:   notif.ERROR,
 							Color:   notif.ColorRed,
 							Title:   "Price Alert - Price Expired",
