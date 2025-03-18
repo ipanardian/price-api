@@ -232,3 +232,10 @@ func RemoveLeading0xIfExists(id string) string {
 func IsLastUpdateExpired(lastUpdate, age int64) bool {
 	return time.Now().Unix()-lastUpdate > age
 }
+
+func TruncateString(s string, maxLength int) string {
+	if len(s) <= maxLength {
+		return s
+	}
+	return s[:maxLength] + "..."
+}
