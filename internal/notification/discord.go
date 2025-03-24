@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -77,7 +78,14 @@ func Send(msg Message) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		logger.Log.Sugar().Errorf("received non-200 status code: %d", resp.StatusCode)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return
+		}
+
+		logger.Log.Sugar().Errorf("received non-200 status code: %d body: %v", resp.StatusCode, string(body))
 		return
 	}
+
+	logger.Log.Sugar().Debugln("Successfully sent notification")
 }
