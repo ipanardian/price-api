@@ -181,7 +181,10 @@ func CurrentTimeAsRFC3339(isUTC bool) string {
 
 func CurrentTimeAsRFC822(isUTC bool) string {
 	if !isUTC {
-		loc, _ := time.LoadLocation("Asia/Jakarta")
+		loc, err := time.LoadLocation("Asia/Jakarta")
+		if err != nil {
+			return time.Now().UTC().Format(time.RFC822)
+		}
 		return time.Now().In(loc).Format(time.RFC822)
 	}
 
