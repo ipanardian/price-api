@@ -15,6 +15,7 @@ var StatusMap = map[string]string{
 	constant.RestrictedUser:       "User is not allowed to access this resource.",
 	constant.PriceNotFound:        "Price not found.",
 	constant.PriceUnavailable:     "Price is unavailable.",
+	constant.RequiredIdsParam:     "Required ids paramater.",
 }
 
 type ApiService interface {
