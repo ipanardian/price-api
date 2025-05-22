@@ -12,6 +12,7 @@ services:
       - .env
     volumes:
       - ./data:/var/data
+      - ./key:/etc/price-api/key
     extra_hosts:
       - host.docker.internal:host-gateway
 
