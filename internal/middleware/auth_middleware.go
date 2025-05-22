@@ -1,7 +1,8 @@
 package middleware
 
 import (
-	"fmt"
+	"encoding/json"
+	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,70 +10,82 @@ import (
 	"github.com/ipanardian/price-api/internal/constant"
 	dtoV1 "github.com/ipanardian/price-api/internal/dto/v1"
 	"github.com/ipanardian/price-api/internal/helpers"
+	"github.com/ipanardian/price-api/internal/model/frame"
 	"github.com/spf13/viper"
 )
 
+// AuthApiMiddleware checks if the request has a valid API key, if not, it returns a 401 status code.
+// The API key is encrypted using AES-256-CBC and stored in a file named "key.json".
+// The decrypted API key is cached in memory for 1 hour to reduce the number of decryption operations.
 func AuthApiMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		apiKey := c.Get("X-API-KEY")
-		apiSignature := c.Get("X-API-SIGNATURE")
-
-		if apiKey == "" || apiSignature == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(dtoV1.ResponseWrapper{
-				Status:        constant.RequestFailure,
-				StatusCode:    "401",
-				StatusNumber:  constant.StatusUnauthorized,
-				StatusMessage: "Missing API Key or Signature",
-				Timestamp:     time.Now().Unix(),
-			})
-		}
-
 		_aesKey := viper.GetString("AES_KEY")
-		_apiKey := viper.GetString("API_KEY")
-		_apiSecretEn := viper.GetString("API_SECRET")
 
-		if apiKey != _apiKey {
+		if apiKey == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(dtoV1.ResponseWrapper{
 				Status:        constant.RequestFailure,
 				StatusCode:    "401",
 				StatusNumber:  constant.StatusUnauthorized,
-				StatusMessage: "Invalid API Key",
+				StatusMessage: "Missing API Key",
 				Timestamp:     time.Now().Unix(),
 			})
 		}
 
-		var _apiSecretDe string
-		_apiSecretDeMem, f := cache.MemGet(fmt.Sprintf("scrt.%s", apiKey))
+		var apiKeyList []frame.APIKey
+		apiKeyListMem, f := cache.MemGet("api_keys")
 		if !f {
-			var err error
-			_apiSecretDe, err = helpers.DecryptAES256CBC(_aesKey, _apiSecretEn)
+			apiKeys, err := os.ReadFile("key/key.json")
 			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(dtoV1.ResponseWrapper{
-					Status:        constant.RequestFailure,
-					StatusCode:    "500",
-					StatusNumber:  constant.DecryptAESError,
-					StatusMessage: "Sorry, this is not working properly. We know about this mistake and are working to fix it.",
-					Timestamp:     time.Now().Unix(),
-				})
+				return returnStatusInternalServerError(c)
 			}
 
-			cache.MemSet(fmt.Sprintf("scrt.%s", apiKey), _apiSecretDe, 60*time.Minute)
+			if err := json.Unmarshal(apiKeys, &apiKeyList); err != nil {
+				return returnStatusInternalServerError(c)
+			}
+
+			apiKeysDecrypted := make([]frame.APIKey, len(apiKeyList))
+			for i, v := range apiKeyList {
+				key, err := helpers.DecryptAES256CBC(_aesKey, v.Key)
+				if err != nil {
+					return returnStatusInternalServerError(c)
+				}
+
+				apiKeysDecrypted[i] = frame.APIKey{
+					Name: v.Name,
+					Key:  key,
+				}
+			}
+
+			apiKeyList = apiKeysDecrypted
+			cache.MemSet("api_keys", apiKeyList, 60*time.Minute)
 		} else {
-			_apiSecretDe = _apiSecretDeMem.(string)
+			apiKeyList = apiKeyListMem.([]frame.APIKey)
 		}
 
-		signature := helpers.GenerateSignature(_apiSecretDe)
-		if apiSignature != signature {
-			return c.Status(fiber.StatusUnauthorized).JSON(dtoV1.ResponseWrapper{
-				Status:        constant.RequestFailure,
-				StatusCode:    "401",
-				StatusNumber:  constant.StatusUnauthorized,
-				StatusMessage: "Invalid Signature",
-				Timestamp:     time.Now().Unix(),
-			})
+		for _, v := range apiKeyList {
+			if v.Key == apiKey {
+				c.Locals("x-api-key", v.Key)
+				return c.Next()
+			}
 		}
-		c.Locals("x-api-key", apiKey)
 
-		return c.Next()
+		return c.Status(fiber.StatusUnauthorized).JSON(dtoV1.ResponseWrapper{
+			Status:        constant.RequestFailure,
+			StatusCode:    "401",
+			StatusNumber:  constant.StatusUnauthorized,
+			StatusMessage: "Invalid API Key",
+			Timestamp:     time.Now().Unix(),
+		})
 	}
+}
+
+func returnStatusInternalServerError(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusInternalServerError).JSON(dtoV1.ResponseWrapper{
+		Status:        constant.RequestFailure,
+		StatusCode:    "500",
+		StatusNumber:  constant.InternalError,
+		StatusMessage: "Sorry, this is not working properly. We know about this mistake and are working to fix it.",
+		Timestamp:     time.Now().Unix(),
+	})
 }

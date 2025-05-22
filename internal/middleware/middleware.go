@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/ipanardian/price-api/internal/constant"
 	dtoV1 "github.com/ipanardian/price-api/internal/dto/v1"
+	"github.com/spf13/viper"
 )
 
 func InitApiMiddleware(app *fiber.App) {
@@ -19,16 +20,22 @@ func InitApiMiddleware(app *fiber.App) {
 	}))
 
 	app.Use(logger.New(logger.Config{
-		Format:     "${time} ${status} - ${method} ${path} ${latency}\n",
+		Format:     "${time} | ${status} | ${latency} | ${ip} | ${method} | ${path} | ${queryParams} | ${userAgent} | ${error}\n",
 		TimeFormat: "02-Jan-2006 15:04:05",
 		TimeZone:   "UTC",
+		CustomTags: map[string]logger.LogFunc{
+			"userAgent": func(output logger.Buffer, c *fiber.Ctx, data *logger.Data, extraParam string) (int, error) {
+				reqHeaders := c.GetReqHeaders()
+				return output.WriteString(reqHeaders["User-Agent"][0])
+			},
+		},
 	}))
 
 	app.Use(cors.New())
 
 	app.Use(limiter.New(limiter.Config{
-		Max:        constant.RateLimitMaxRequest,
-		Expiration: constant.RateLimitExpiration,
+		Max:        viper.GetInt(constant.RateLimitMaxRequest),
+		Expiration: viper.GetDuration(constant.RateLimitExpiration),
 		LimitReached: func(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusTooManyRequests).JSON(dtoV1.ResponseWrapper{
 				Status:        constant.RequestFailure,

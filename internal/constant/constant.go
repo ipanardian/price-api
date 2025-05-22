@@ -1,7 +1,5 @@
 package constant
 
-import "time"
-
 const (
 	REST_PORT     = "REST_PORT"
 	AES_KEY       = "AES_KEY"
@@ -15,6 +13,6 @@ const (
 )
 
 const (
-	RateLimitMaxRequest = 100
-	RateLimitExpiration = 1 * time.Second
+	RateLimitMaxRequest = "RATE_LIMIT_MAX_REQUEST"
+	RateLimitExpiration = "RATE_LIMIT_EXPIRATION"
 )
