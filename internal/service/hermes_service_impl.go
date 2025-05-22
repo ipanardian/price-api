@@ -11,12 +11,14 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/ipanardian/price-api/internal/cache"
+	"github.com/ipanardian/price-api/internal/constant"
 	"github.com/ipanardian/price-api/internal/helpers"
 	"github.com/ipanardian/price-api/internal/logger"
 	"github.com/ipanardian/price-api/internal/model/frame"
 	notif "github.com/ipanardian/price-api/internal/notification"
 	"github.com/recws-org/recws"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type HermesServiceImpl struct {
@@ -333,7 +335,7 @@ func (b *HermesServiceImpl) Sync() {
 				b.pricesMx.RLock()
 				for i, prc := range b.prices {
 					jsonStr, _ := json.Marshal(prc)
-					pipeline.Set(ctx, fmt.Sprintf("price:%s", i), jsonStr, 1*time.Minute)
+					pipeline.Set(ctx, fmt.Sprintf("price:%s", i), jsonStr, constant.RedisPriceCacheTTL)
 				}
 				b.pricesMx.RUnlock()
 				_, e := pipeline.Exec(ctx)
@@ -341,7 +343,7 @@ func (b *HermesServiceImpl) Sync() {
 					logger.Log.Sugar().Errorln("redis exec price", e)
 				}
 			}()
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(constant.RedisPriceUpdateInterval)
 		}
 	}()
 }
@@ -379,6 +381,7 @@ func (b *HermesServiceImpl) HealthCheck() {
 					id = helpers.RemoveLeading0xIfExists(id)
 					price, err := cache.Get[frame.PriceHermes](context.Background(), fmt.Sprintf("price:%s", id))
 					if err != nil {
+						logger.Log.Sugar().Error("Price not found in cache", zap.Error(err), zap.String("id", id))
 						notif.Send(notif.Message{
 							Level:   notif.ERROR,
 							Color:   notif.ColorRed,
@@ -393,6 +396,7 @@ func (b *HermesServiceImpl) HealthCheck() {
 					}
 
 					if !price.Price.IsPositive() {
+						logger.Log.Sugar().Error("Invalid price", zap.String("id", id), zap.String("price", price.Price.String()))
 						notif.Send(notif.Message{
 							Level:   notif.ERROR,
 							Color:   notif.ColorRed,
@@ -411,6 +415,7 @@ func (b *HermesServiceImpl) HealthCheck() {
 							loc, _ := time.LoadLocation("Asia/Jakarta")
 							return time.Unix(price.PublishTime, 0).In(loc).Format(time.RFC822)
 						}
+						logger.Log.Sugar().Warn("Price expired", zap.String("id", id), zap.String("lastUpdate", lastUpdate()))
 						notif.Send(notif.Message{
 							Level:   notif.ERROR,
 							Color:   notif.ColorRed,

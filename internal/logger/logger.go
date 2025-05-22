@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -29,7 +30,7 @@ func Get() *zap.Logger {
 		}
 
 		level := zap.NewAtomicLevelAt(zapcore.Level(logLevel))
-		layoutTime := "2006/01/20 15:04:05"
+		layoutTime := time.RFC822
 
 		productionCfg := zap.NewProductionEncoderConfig()
 		productionCfg.EncodeTime = zapcore.TimeEncoderOfLayout(layoutTime)
