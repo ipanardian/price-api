@@ -35,7 +35,7 @@ func AuthApiMiddleware() fiber.Handler {
 		var apiKeyList []frame.APIKey
 		apiKeyListMem, f := cache.MemGet("api_keys")
 		if !f {
-			apiKeys, err := os.ReadFile("key.json")
+			apiKeys, err := os.ReadFile("key/key.json")
 			if err != nil {
 				return returnStatusInternalServerError(c)
 			}

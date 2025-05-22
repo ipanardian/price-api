@@ -28,4 +28,4 @@ go.work.sum
 data
 build
 tmp
-key.json
+key/
