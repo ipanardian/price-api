@@ -10,8 +10,10 @@ import (
 	"github.com/ipanardian/price-api/internal/constant"
 	dtoV1 "github.com/ipanardian/price-api/internal/dto/v1"
 	"github.com/ipanardian/price-api/internal/helpers"
+	"github.com/ipanardian/price-api/internal/logger"
 	"github.com/ipanardian/price-api/internal/model/frame"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 // AuthApiMiddleware checks if the request has a valid API key, if not, it returns a 401 status code.
@@ -37,10 +39,12 @@ func AuthApiMiddleware() fiber.Handler {
 		if !f {
 			apiKeys, err := os.ReadFile("key/key.json")
 			if err != nil {
+				logger.Log.Error("Read file error: ", zap.Error(err))
 				return returnStatusInternalServerError(c)
 			}
 
 			if err := json.Unmarshal(apiKeys, &apiKeyList); err != nil {
+				logger.Log.Error("Unmarshal error: ", zap.Error(err))
 				return returnStatusInternalServerError(c)
 			}
 
@@ -48,6 +52,7 @@ func AuthApiMiddleware() fiber.Handler {
 			for i, v := range apiKeyList {
 				key, err := helpers.DecryptAES256CBC(_aesKey, v.Key)
 				if err != nil {
+					logger.Log.Error("Decrypt error: ", zap.Error(err), zap.String("key", v.Key))
 					return returnStatusInternalServerError(c)
 				}
 
