@@ -15,6 +15,7 @@ const (
 	TooManyRequest       = "50006"
 	StatusSuspended      = "50007"
 	DecryptAESError      = "50008"
+	RequiredIdsParam     = "50009"
 
 	RestrictedUser   = "50100"
 	PriceNotFound    = "50101"
