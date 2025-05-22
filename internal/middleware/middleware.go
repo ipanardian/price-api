@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/ipanardian/price-api/internal/constant"
 	dtoV1 "github.com/ipanardian/price-api/internal/dto/v1"
+	"github.com/spf13/viper"
 )
 
 func InitApiMiddleware(app *fiber.App) {
@@ -33,8 +34,8 @@ func InitApiMiddleware(app *fiber.App) {
 	app.Use(cors.New())
 
 	app.Use(limiter.New(limiter.Config{
-		Max:        constant.RateLimitMaxRequest,
-		Expiration: constant.RateLimitExpiration,
+		Max:        viper.GetInt(constant.RateLimitMaxRequest),
+		Expiration: viper.GetDuration(constant.RateLimitExpiration),
 		LimitReached: func(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusTooManyRequests).JSON(dtoV1.ResponseWrapper{
 				Status:        constant.RequestFailure,
