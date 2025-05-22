@@ -19,9 +19,15 @@ func InitApiMiddleware(app *fiber.App) {
 	}))
 
 	app.Use(logger.New(logger.Config{
-		Format:     "${time} ${status} - ${method} ${path} ${latency}\n",
+		Format:     "${time} | ${status} | ${latency} | ${ip} | ${method} | ${path} | ${queryParams} | ${userAgent} | ${error}\n",
 		TimeFormat: "02-Jan-2006 15:04:05",
 		TimeZone:   "UTC",
+		CustomTags: map[string]logger.LogFunc{
+			"userAgent": func(output logger.Buffer, c *fiber.Ctx, data *logger.Data, extraParam string) (int, error) {
+				reqHeaders := c.GetReqHeaders()
+				return output.WriteString(reqHeaders["User-Agent"][0])
+			},
+		},
 	}))
 
 	app.Use(cors.New())
