@@ -60,10 +60,13 @@ func (b *HermesServiceImpl) Connect() (err error) {
 	ws.Dial(b.rpc, nil)
 
 	if !ws.IsConnected() {
-		logger.Log.Sugar().Error("hermes connect error!")
-		<-time.After(3 * time.Second)
-		b.Connect()
-		return
+		if ws.GetDialError() != nil {
+			res := ws.GetHTTPResponse()
+			logger.Log.Error("hermes connect error", zap.Error(ws.GetDialError()), zap.Int("status", res.StatusCode))
+			<-time.After(3 * time.Second)
+			b.Connect()
+			return
+		}
 	}
 
 	b.ws = ws
