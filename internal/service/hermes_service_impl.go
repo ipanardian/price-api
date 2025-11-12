@@ -62,7 +62,11 @@ func (b *HermesServiceImpl) Connect() (err error) {
 	if !ws.IsConnected() {
 		if ws.GetDialError() != nil {
 			res := ws.GetHTTPResponse()
-			logger.Log.Error("hermes connect error", zap.Error(ws.GetDialError()), zap.Int("status", res.StatusCode))
+			if res != nil {
+				logger.Log.Error("hermes connect error", zap.Error(ws.GetDialError()), zap.Int("status", res.StatusCode))
+			} else {
+				logger.Log.Error("hermes connect error", zap.Error(ws.GetDialError()))
+			}
 			<-time.After(3 * time.Second)
 			b.Connect()
 			return
@@ -87,7 +91,7 @@ func (b *HermesServiceImpl) Connect() (err error) {
 					}
 				}()
 
-				if ws == nil {
+				if ws == nil || ws.Conn == nil {
 					return
 				}
 
@@ -165,6 +169,11 @@ func (b *HermesServiceImpl) Connect() (err error) {
 					return
 				}
 
+				if len(ch) == 0 {
+					logger.Log.Sugar().Error("Empty subscription list")
+					return
+				}
+
 				ids := make([]string, len(ch))
 				for i, item := range ch {
 					ids[i] = fmt.Sprintf(`"%s"`, item)
@@ -180,7 +189,7 @@ func (b *HermesServiceImpl) Connect() (err error) {
 				args := fmt.Sprintf(`{"ids":[%s],"type":"subscribe","binary":true}`, idStr)
 				e := b.ws.WriteMessage(websocket.TextMessage, []byte(args))
 				if e != nil {
-					logger.Log.Sugar().Errorf("subscribe error: %s", err)
+					logger.Log.Sugar().Errorf("subscribe error: %s", e)
 					b.subsMx.Lock()
 					b.hermesIsSubscribed = false
 					b.subsMx.Unlock()
@@ -205,12 +214,11 @@ func (b *HermesServiceImpl) Connect() (err error) {
 
 		for {
 			func() {
-				defer func() {
-					b.subsMx.Unlock()
-				}()
 				time.Sleep(10 * time.Second)
 
 				b.subsMx.Lock()
+				defer b.subsMx.Unlock()
+
 				if b.ws.IsConnected() && !b.hermesIsSubscribed && len(b.hermesPriceIds) > 0 {
 					logger.Log.Sugar().Infoln("Hermes resubscribing")
 					notif.Send(notif.Message{
